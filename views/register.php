@@ -8,8 +8,15 @@
 </head>
 <body>
 <?php
-// Adding the mPDF library 
+ 
+// inserting PHPMailer
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\SMTP;
+use PHPMailer\PHPMailer\Exception;
+// Adding the mPDF library
 require_once '../vendor/autoload.php';
+// inserting mail.php
+require '../controller/mail.php';
 
 session_start();
 if (isset($_POST['submit'])) {
@@ -25,9 +32,9 @@ if (isset($_POST['submit'])) {
     $exp = $_POST['exp'];
 
     // inserting the db connection 
-
+    
     require_once '../controller/connection.php';
-
+    
     // check for the duplicate email
     $sql = "SELECT * FROM `register` WHERE email ='$email'";
     $sql_check = mysqli_query($connection,$sql);
@@ -42,14 +49,16 @@ if (isset($_POST['submit'])) {
     
     $result = mysqli_query($connection,$query)or die(mysqli_error($connection));
     echo "New Record Created Successfully !!!";
+}
 
-    // Get the latest 'ID' from Table 
+
+// Get the latest 'ID' from Table 
     $last_id = mysqli_insert_id($connection);
     $get_record = "SELECT `first-name`,`last-name`  FROM `register` WHERE `u_id` = '$last_id' ";
     $record = mysqli_query($connection,$get_record);
 
-    // Fetch the needful data to generate the PDF 
-    while ($data = mysqli_fetch_assoc($record)) {
+     // Fetch the needful data to generate the PDF 
+     while ($data = mysqli_fetch_assoc($record)) {
         
         $pdf = "<div style='border:1px solid;width:50%;'>
         <p>Logo</p>
@@ -62,29 +71,65 @@ if (isset($_POST['submit'])) {
         Managing Director
         </p>
         </div>";
-    }
+    
 
-$mpdf =  new Mpdf\Mpdf();
-$mpdf->WriteHTML($pdf);
+        $mpdf =  new Mpdf\Mpdf();
+        $mpdf->WriteHTML($pdf);
 
-// The watermark content 
-$mpdf->SetWatermarkText('Register Details');
-$mpdf->showWatermarkText = true;
-$mpdf->watermarkTextAlpha = 0.1;
-
-
-//save the file put which location you need folder/filename
-$mpdf->Output("Userdata.pdf", 'D');
+        // The watermark content 
+        $mpdf->SetWatermarkText('Register Details');
+        $mpdf->showWatermarkText = true;
+        $mpdf->watermarkTextAlpha = 0.1;
 
 
-//out put in browser below output function
-$mpdf->Output();
-    }
-// Closing the sql connection:
+        //save the file put which location you need folder/filename
+        $mpdf->Output("doc.pdf", 'F');
+        //out put in browser below output function
+        $mpdf->Output();
+}
+
+
+    // PHPmailer with SMTP -> sends the recent record entered 
+    $mail = new PHPMailer(true);
+try {
+    //Server settings
+    $mail->SMTPDebug = SMTP::DEBUG_SERVER;                      // Enable verbose debug output
+    $mail->isSMTP();                                            // Send using SMTP
+    $mail->Host       = 'smtp1.gmail.com';                    // Set the SMTP server to send through
+    $mail->SMTPAuth   = true;                                   // Enable SMTP authentication
+    $mail->Username   = Email;                      
+    $mail->Password   = Pass;                               
+    $mail->SMTPSecure = tls;         
+    $mail->Port       = 587;                                    
+
+    //Recipients
+    $mail->setFrom(Email, 'Harshana');
+    $mail->addAddress($email);     // Add a recipient
+    $mail->addAddress(Email);      
+    $mail->addReplyTo(Email);
+
+
+    // Content
+    $mail->isHTML(true);                                  // Set email format to HTML
+    $mail->Subject = 'Details of the registered user';
+    $mail->Body    = 'First name:
+     '.$firstname.'Last name:
+      '.$lastname.'Email: '.$email.
+      'Phone Number: '.$phone.'Education: '.$education.
+      'Education Level: '.$edu_level. 'Industry: '.$industry.
+      'Working Industry: '.$industry.'Experience: '.$exp;
+    $mail->AltBody = 'This is the body in plain text for non-HTML mail clients';
+
+    $mail->send();
+    echo 'Message has been sent';
+} catch (Exception $e) {
+    echo "Message could not be sent. Mailer Error: {$mail->ErrorInfo}";
+}
+
+    // Closing the sql connection:
     mysqli_close($connection);
 
 }
-
 
 ?>
 <div class="container">
