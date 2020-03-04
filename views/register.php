@@ -49,22 +49,29 @@ if (isset($_POST['submit'])) {
     
     $result = mysqli_query($connection,$query)or die(mysqli_error($connection));
     echo "New Record Created Successfully !!!";
+
 }
 
-
 // Get the latest 'ID' from Table 
-    $last_id = mysqli_insert_id($connection);
-    $get_record = "SELECT `first-name`,`last-name`  FROM `register` WHERE `u_id` = '$last_id' ";
+$last_id = mysqli_insert_id($connection);
+    $get_record = "SELECT `first-name`,`last-name`,`education`, `edu_level`, `industry`, `exp` FROM `register` WHERE `u_id` = '$last_id' ";
     $record = mysqli_query($connection,$get_record);
 
-     // Fetch the needful data to generate the PDF 
+    // Finding the comparison for PDF document 
+    if($education == 'Others' || $edu_level == 'Others'|| $industry == 'Others' || $exp<'4'){
+        $result_1 = 'Pass';
+    }else{
+        $result_2 = 'Fail';
+    }
+
+    // Fetch the needful data to generate the PDF 
      while ($data = mysqli_fetch_assoc($record)) {
         
         $pdf = "<div style='border:1px solid;width:50%;'>
         <p>Logo</p>
         <h3>Dear ".$data['first-name']." ".$data['last-name']."</h3>
         
-        <p>You application was processed. According to your qualifications and skills you are [[ Decision]] for
+        <p>You application was processed. According to your qualifications and skills you are ".$result_1.$result_2." for
         the current opportunity at our organization.</p>
         <p>
         Cheers
@@ -73,6 +80,7 @@ if (isset($_POST['submit'])) {
         </div>";
     
 
+        try {
         $mpdf =  new Mpdf\Mpdf();
         $mpdf->WriteHTML($pdf);
 
@@ -81,15 +89,20 @@ if (isset($_POST['submit'])) {
         $mpdf->showWatermarkText = true;
         $mpdf->watermarkTextAlpha = 0.1;
 
-        // Creating a location 
+        // // Creating a location 
         $location = __DIR__.'/../PDF/';
+        // // Filename: with a Unique name 
+        $filename = uniqid('document', true) . '.pdf';
         // Save into a unique folder 
-        $mpdf->Output($location. "doc.pdf", 'F');
+        $mpdf->Output($location.$filename, \Mpdf\Output\Destination::FILE);
         $mpdf->Output();
+
+        } catch (\Mpdf\MpdfException $e) {
+            echo $e->getMessage();
+        }
 }
 
-
-    // PHPmailer with SMTP -> sends the recent record entered 
+// PHPmailer with SMTP -> sends the recent record entered 
     $mail = new PHPMailer(true);
 try {
     //Server settings
@@ -125,7 +138,6 @@ try {
 } catch (Exception $e) {
     echo "Message could not be sent. Mailer Error: {$mail->ErrorInfo}";
 }
-
     // Closing the sql connection:
     mysqli_close($connection);
 
