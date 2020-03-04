@@ -81,10 +81,10 @@ if (isset($_POST['submit'])) {
         $mpdf->showWatermarkText = true;
         $mpdf->watermarkTextAlpha = 0.1;
 
-
-        //save the file put which location you need folder/filename
-        $mpdf->Output("doc.pdf", 'F');
-        //out put in browser below output function
+        // Creating a location 
+        $location = __DIR__.'/../PDF/';
+        // Save into a unique folder 
+        $mpdf->Output($location. "doc.pdf", 'F');
         $mpdf->Output();
 }
 
